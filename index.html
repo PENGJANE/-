@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>互传码能力 · Demo v4</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{--g:#07C160;--gd:#06AD56;--bg:#EDEDED;--tx:#191919;--gr:#888;--bd:#E5E5E5;--bl:#576B95;--rd:#FA5151;}
+body{font-family:-apple-system,"PingFang SC","Helvetica Neue",sans-serif;background:#111;display:flex;justify-content:center;align-items:flex-start;min-height:100vh;padding:32px 20px;gap:32px;}
+.phone{width:375px;height:812px;background:#000;border-radius:52px;box-shadow:0 40px 100px rgba(0,0,0,.7),inset 0 0 0 1px rgba(255,255,255,.12);position:relative;overflow:hidden;flex-shrink:0;}
+.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:140px;height:28px;background:#000;border-radius:0 0 18px 18px;z-index:200;}
+.pi{position:absolute;inset:0;border-radius:52px;overflow:hidden;background:var(--bg);}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);background:var(--bg);overflow:hidden;}
+.screen.active{transform:translateX(0);}
+.sc{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.sc::-webkit-scrollbar{display:none;}
+.sb{height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 20px 8px;flex-shrink:0;}
+.nav{height:44px;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;background:rgba(249,249,249,.95);backdrop-filter:blur(12px);border-bottom:.5px solid var(--bd);}
+.nav-t{font-size:17px;font-weight:600;}
+.nb{position:absolute;left:12px;display:flex;align-items:center;gap:3px;color:var(--bl);cursor:pointer;padding:8px 4px;}
+.nb svg{width:10px;height:17px;}
+.na{position:absolute;right:16px;color:var(--bl);font-size:15px;cursor:pointer;}
+/* chat */
+.msgs{padding:12px 16px;display:flex;flex-direction:column;gap:14px;}
+.mr{display:flex;gap:10px;align-items:flex-start;}
+.mr.me{flex-direction:row-reverse;}
+.mav{width:40px;height:40px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:16px;}
+.mb{max-width:230px;padding:10px 13px;border-radius:4px;font-size:16px;line-height:1.5;color:var(--tx);background:#fff;}
+.mr.me .mb{background:var(--g);color:#fff;}
+.mn{font-size:12px;color:var(--gr);margin-bottom:4px;}
+.mt{font-size:11px;color:var(--gr);text-align:center;margin:2px 0;}
+.cib{background:#fff;border-top:.5px solid var(--bd);padding:8px 12px 28px;display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.ci-inp{flex:1;background:#F5F5F5;border-radius:6px;height:36px;display:flex;align-items:center;padding:0 12px;font-size:15px;color:var(--gr);}
+
+/* ── 红包风格互传码卡片 ── */
+.hb{width:210px;border-radius:16px;overflow:hidden;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.18);}
+.hb-top{background:linear-gradient(160deg,#1DAA61 0%,#0E8A47 60%,#0A7A3E 100%);padding:18px 16px 20px;display:flex;flex-direction:column;align-items:center;position:relative;overflow:hidden;}
+.hb-top::before{content:'';position:absolute;width:160px;height:160px;border-radius:50%;border:1px solid rgba(255,255,255,.1);top:-60px;right:-40px;}
+.hb-top::after{content:'';position:absolute;width:100px;height:100px;border-radius:50%;border:1px solid rgba(255,255,255,.08);bottom:-30px;left:-20px;}
+.hb-icon{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.18);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:10px;position:relative;z-index:1;}
+.hb-title{font-size:16px;font-weight:700;color:#fff;margin-bottom:4px;text-align:center;position:relative;z-index:1;}
+.hb-sub{font-size:11px;color:rgba(255,255,255,.75);text-align:center;position:relative;z-index:1;}
+.hb-photos{display:flex;gap:4px;margin-top:10px;position:relative;z-index:1;}
+.hb-ph{width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;border:1.5px solid rgba(255,255,255,.25);}
+.hb-bot{background:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
+.hb-from{font-size:12px;color:var(--gr);display:flex;align-items:center;gap:5px;}
+.hb-logo{width:15px;height:15px;background:var(--g);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;}
+.hb-cta{font-size:13px;color:var(--g);font-weight:600;}
+/* QR share image */
+.qr-share{width:230px;background:#fff;border-radius:16px;padding:14px 12px;box-shadow:0 4px 18px rgba(0,0,0,.12);cursor:pointer;}
+.qr-share-top{display:flex;align-items:center;gap:8px;color:#6B7785;font-size:12px;margin-bottom:10px;}
+.qr-share-qr{width:180px;height:180px;margin:0 auto 8px;position:relative;}
+.qr-share-qr img{width:100%;height:100%;object-fit:contain;border-radius:4px;}
+.qr-share-title{font-size:14px;font-weight:600;color:#222;text-align:center;margin-bottom:6px;}
+.qr-share-sub{font-size:12px;color:#B0B7C3;text-align:center;}
+
+/* ── DJI 小程序 ── */
+#s-dji{background:#0a0a0a;}
+/* 胶囊按钮（图一） */
+.mp-cap{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:20px;height:32px;display:flex;align-items:center;padding:0 12px;gap:8px;}
+.mp-cap-dots{font-size:13px;color:rgba(255,255,255,.85);letter-spacing:2px;line-height:1;margin-top:-1px;}
+.mp-cap-div{width:1px;height:14px;background:rgba(255,255,255,.3);}
+.mp-cap-ring{width:17px;height:17px;border-radius:50%;border:1.5px solid rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;}
+.mp-cap-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.75);}
+/* 小程序顶bar */
+.mp-bar{height:44px;background:rgba(10,10,10,.97);border-bottom:.5px solid rgba(255,255,255,.08);display:flex;align-items:center;padding:0 16px;flex-shrink:0;position:relative;}
+.mp-back-wx{display:flex;align-items:center;gap:3px;color:rgba(255,255,255,.7);cursor:pointer;}
+.mp-back-wx svg{width:10px;height:17px;}
+.mp-center{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;}
+.mp-ico{width:20px;height:20px;background:#0066CC;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;letter-spacing:-.5px;}
+.mp-nm{font-size:14px;font-weight:600;color:#fff;}
+.mp-tag{font-size:10px;color:rgba(255,255,255,.45);background:rgba(255,255,255,.1);border-radius:3px;padding:1px 5px;}
+/* dji grid */
+.dji-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;}
+.dj-th{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:28px;position:relative;cursor:pointer;}
+.dj-th .sr{position:absolute;inset:0;border:3px solid var(--g);opacity:0;transition:opacity .15s;pointer-events:none;}
+.dj-th.sel .sr{opacity:1;}
+.dj-th .sd{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;}
+.dj-th.sel .sd{background:var(--g);border-color:var(--g);}
+.dji-bar{background:rgba(10,10,10,.97);border-top:.5px solid rgba(255,255,255,.08);padding:12px 16px 28px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.dji-bi{flex:1;font-size:14px;color:rgba(255,255,255,.5);}
+.dji-bi strong{color:#fff;}
+.dji-icon-btn{width:36px;height:36px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;cursor:pointer;}
+.fab-ic{position:absolute;right:18px;bottom:92px;background:#07C160;color:#fff;border:none;border-radius:999px;padding:12px 16px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;box-shadow:0 10px 22px rgba(7,193,96,.35);cursor:pointer;}
+.fab-ic span{font-size:18px;line-height:1;}
+.btn-dji{background:#0066CC;color:#fff;border:none;border-radius:6px;height:44px;padding:0 20px;font-size:15px;font-family:inherit;cursor:pointer;font-weight:600;}
+.btn-dji:disabled{background:rgba(255,255,255,.1);color:rgba(255,255,255,.3);}
+
+/* ── Config ── */
+#s-config{background:#F2F2F7;}
+.cfg-sec{background:#fff;margin-top:12px;border-top:.5px solid var(--bd);border-bottom:.5px solid var(--bd);}
+.cfg-lbl{font-size:13px;color:var(--gr);padding:14px 16px 8px;}
+.cfg-row{display:flex;align-items:center;padding:14px 16px;border-bottom:.5px solid var(--bd);gap:10px;cursor:pointer;}
+.cfg-row:last-child{border-bottom:none;}
+.cfg-inp{flex:1;border:none;outline:none;font-size:16px;font-family:inherit;color:var(--tx);background:transparent;}
+.cfg-inp::placeholder{color:#C8C8CD;}
+.gava{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.scope-note{background:#F0FAF4;border-radius:8px;margin:0 16px 12px;padding:10px 12px;display:flex;gap:8px;align-items:flex-start;}
+.snt{font-size:13px;color:#3A7D58;line-height:1.5;}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 8px;}
+.chip{display:flex;align-items:center;gap:5px;background:#F0F0F0;border-radius:16px;padding:5px 10px 5px 6px;font-size:13px;color:var(--tx);cursor:pointer;transition:all .15s;}
+.chip.on{background:#E8F5E9;color:var(--g);}
+.chip-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:600;}
+.pills{display:flex;gap:8px;padding:12px 16px;flex-wrap:wrap;}
+.pill{padding:7px 16px;border-radius:20px;border:1px solid var(--bd);font-size:14px;color:var(--gr);cursor:pointer;background:#fff;transition:all .15s;}
+.pill.on{background:var(--g);color:#fff;border-color:var(--g);}
+.pstrip{display:flex;gap:4px;padding:10px 16px;overflow-x:auto;}
+.pstrip::-webkit-scrollbar{display:none;}
+.pst{width:52px;height:52px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+.psm{width:52px;height:52px;border-radius:8px;background:#F0F0F0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--gr);flex-shrink:0;}
+.btn-p{display:block;width:calc(100% - 32px);margin:16px auto;background:var(--g);color:#fff;border:none;border-radius:6px;height:50px;font-size:17px;cursor:pointer;font-family:inherit;font-weight:500;}
+
+/* ── QR页 ── */
+#s-qr{background:#F2F2F7;}
+.qr-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 24px 32px;}
+.qr-card{background:#fff;border-radius:20px;padding:18px 18px 20px;display:flex;flex-direction:column;align-items:center;box-shadow:0 4px 24px rgba(0,0,0,.08);width:100%;}
+.qr-head{width:100%;display:flex;align-items:center;gap:8px;color:#5F6B7A;font-size:13px;margin-bottom:10px;}
+.qr-head-ico{width:18px;height:18px;border-radius:4px;background:#EAF6EF;color:#07C160;display:flex;align-items:center;justify-content:center;font-size:12px;}
+.qr-ct{font-size:18px;font-weight:700;color:var(--tx);margin-bottom:3px;text-align:center;}
+.qr-cs{font-size:13px;color:var(--gr);margin-bottom:18px;text-align:center;}
+.qr-frame{width:220px;height:220px;position:relative;margin-bottom:16px;}
+.qr-frame img{width:100%;height:100%;object-fit:contain;display:block;border-radius:4px;}
+.qr-subline{font-size:12px;color:#B0B7C3;margin-top:6px;text-align:center;}
+/* scan line */
+.scan-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent 0%,rgba(7,193,96,.8) 50%,transparent 100%);animation:scanAnim 2s ease-in-out infinite;top:0;pointer-events:none;}
+@keyframes scanAnim{0%{top:4px;opacity:0}5%{opacity:1}95%{opacity:1}100%{top:216px;opacity:0}}
+/* corner brackets */
+.qr-br{position:absolute;inset:0;pointer-events:none;}
+.qr-br::before,.qr-br::after,.qr-br2::before,.qr-br2::after{content:'';position:absolute;width:22px;height:22px;}
+.qr-br::before{top:0;left:0;border-top:3px solid var(--g);border-left:3px solid var(--g);border-radius:3px 0 0 0;}
+.qr-br::after{top:0;right:0;border-top:3px solid var(--g);border-right:3px solid var(--g);border-radius:0 3px 0 0;}
+.qr-br2{position:absolute;inset:0;pointer-events:none;}
+.qr-br2::before{bottom:0;left:0;border-bottom:3px solid var(--g);border-left:3px solid var(--g);border-radius:0 0 0 3px;}
+.qr-br2::after{bottom:0;right:0;border-bottom:3px solid var(--g);border-right:3px solid var(--g);border-radius:0 0 3px 0;}
+.qr-expire{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--gr);margin-bottom:10px;}
+.qr-dot{width:8px;height:8px;border-radius:50%;background:var(--g);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.qr-hint{font-size:12px;color:var(--gr);text-align:center;padding-top:10px;border-top:.5px solid var(--bd);width:100%;}
+.btn-scan{display:block;width:calc(100% - 48px);margin:16px auto 0;background:var(--g);color:#fff;border:none;border-radius:6px;height:50px;font-size:17px;cursor:pointer;font-family:inherit;font-weight:500;}
+/* long banner + sheet */
+.long-banner{width:100%;background:#fff;border-radius:12px;border:1px solid var(--bd);padding:12px 14px;margin-top:14px;font-size:13px;color:var(--tx);display:flex;align-items:center;gap:10px;}
+.long-banner .lb-dot{width:10px;height:10px;border-radius:50%;background:var(--g);}
+.sheet{width:100%;margin-top:14px;background:#fff;border-radius:18px 18px 12px 12px;box-shadow:0 -6px 22px rgba(0,0,0,.08);padding:12px 14px 10px;}
+.sheet-title{font-size:13px;color:var(--gr);margin-bottom:10px;}
+.sheet-row{display:flex;align-items:center;gap:10px;background:#F7F7F7;border-radius:10px;padding:10px 12px;}
+.sheet-ico{width:36px;height:36px;border-radius:8px;background:#000;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;}
+.sheet-t{font-size:14px;color:var(--tx);font-weight:600;}
+.sheet-s{font-size:12px;color:var(--gr);margin-top:2px;}
+.sheet-overlay{position:absolute;inset:0;background:rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .2s;}
+.sheet-overlay.show{opacity:1;pointer-events:auto;}
+.sheet-wrap{position:absolute;left:0;right:0;bottom:0;transform:translateY(100%);transition:transform .25s ease;z-index:300;padding:0 6px 10px;}
+.sheet-wrap.show{transform:translateY(0);}
+.sheet-handle{width:38px;height:5px;border-radius:999px;background:#E5E5E5;margin:8px auto 10px;}
+.share-text{margin-top:10px;font-size:12px;color:#93A0B2;text-align:center;cursor:pointer;}
+.link-sheet{background:#fff;border-radius:20px;padding:12px 10px;width:100%;box-shadow:0 6px 22px rgba(0,0,0,.08);}
+.link-row{display:flex;align-items:center;gap:10px;background:#F5F6F7;border-radius:16px;padding:16px 18px;font-size:15px;color:#333;}
+.link-ico{width:22px;height:22px;border-radius:6px;background:#E8F1FF;color:#2F7BFF;display:flex;align-items:center;justify-content:center;font-size:12px;}
+.input-sheet{background:#fff;border-radius:16px;padding:12px 12px 10px;}
+.input-row{display:flex;align-items:center;gap:10px;background:#F2F2F7;border-radius:10px;padding:10px 12px;}
+.input-row input{border:none;outline:none;background:transparent;font-size:14px;flex:1;font-family:inherit;color:var(--tx);}
+.input-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:10px;}
+.btn-ghost{background:#F2F2F7;border:none;border-radius:8px;padding:8px 12px;font-size:13px;color:#667085;cursor:pointer;}
+.btn-done{background:#07C160;border:none;border-radius:8px;padding:8px 14px;font-size:13px;color:#fff;cursor:pointer;}
+.btn-done:disabled{background:#B7E7CC;color:#fff;cursor:default;}
+
+/* ── Preview ── */
+#s-prev{background:#0a0a0a;}
+.prev-nav{height:44px;display:flex;align-items:center;justify-content:center;position:relative;background:rgba(0,0,0,.97);flex-shrink:0;border-bottom:.5px solid rgba(255,255,255,.06);}
+.prev-nav-t{font-size:17px;font-weight:600;color:#fff;}
+.prev-back{position:absolute;left:12px;color:rgba(255,255,255,.8);cursor:pointer;padding:8px;display:flex;align-items:center;}
+.prev-back svg{width:10px;height:17px;}
+.pg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px;}
+.pg-it{aspect-ratio:1;position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:30px;}
+.pg-it .ov{position:absolute;inset:0;background:rgba(7,193,96,.3);opacity:0;transition:opacity .15s;}
+.pg-it.sel .ov{opacity:1;}
+.pg-ck{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.7);background:rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;transition:all .15s;}
+.pg-it.sel .pg-ck{background:var(--g);border-color:var(--g);}
+.prev-bar{background:rgba(0,0,0,.95);border-top:.5px solid rgba(255,255,255,.07);padding:12px 16px 28px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.prev-info{flex:1;font-size:14px;color:rgba(255,255,255,.55);}
+.prev-info strong{color:#fff;}
+.btn-dl{background:var(--g);color:#fff;border:none;border-radius:6px;height:44px;padding:0 22px;font-size:16px;font-family:inherit;cursor:pointer;font-weight:500;}
+.btn-dl:disabled{background:rgba(255,255,255,.12);color:rgba(255,255,255,.35);}
+
+/* ── Success ── */
+.suc-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;text-align:center;}
+.suc-ring{width:80px;height:80px;border-radius:50%;background:var(--g);display:flex;align-items:center;justify-content:center;font-size:38px;color:#fff;margin-bottom:20px;box-shadow:0 8px 28px rgba(7,193,96,.35);animation:pop .4s cubic-bezier(.175,.885,.32,1.275);}
+@keyframes pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.suc-ti{font-size:22px;font-weight:600;color:var(--tx);margin-bottom:8px;}
+.suc-de{font-size:15px;color:var(--gr);line-height:1.6;margin-bottom:24px;}
+.suc-ths{display:flex;gap:4px;margin-bottom:28px;}
+.sth{width:58px;height:58px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+
+/* ── Panel ── */
+.panel{width:200px;flex-shrink:0;padding-top:8px;}
+.panel-title{font-size:10px;color:rgba(255,255,255,.28);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;}
+.step{display:flex;gap:10px;align-items:flex-start;margin-bottom:2px;cursor:pointer;padding:9px 10px;border-radius:10px;transition:background .2s;}
+.step:hover{background:rgba(255,255,255,.05);}
+.step.on{background:rgba(7,193,96,.14);}
+.step-dot{width:26px;height:26px;border-radius:50%;flex-shrink:0;border:2px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(255,255,255,.3);transition:all .2s;}
+.step.on .step-dot{border-color:var(--g);background:var(--g);color:#fff;}
+.step.done .step-dot{border-color:var(--g);background:rgba(7,193,96,.18);color:var(--g);}
+.step-role{font-size:10px;color:rgba(255,255,255,.27);letter-spacing:1px;text-transform:uppercase;margin-bottom:1px;}
+.step-name{font-size:13px;color:rgba(255,255,255,.65);}
+.step.on .step-name{color:#fff;font-weight:600;}
+.sl{width:1px;height:12px;background:rgba(255,255,255,.07);margin:1px 0 1px 22px;}
+
+.c1{background:linear-gradient(135deg,#667eea,#764ba2);}
+.c2{background:linear-gradient(135deg,#f093fb,#f5576c);}
+.c3{background:linear-gradient(135deg,#4facfe,#00f2fe);}
+.c4{background:linear-gradient(135deg,#43e97b,#38f9d7);}
+.c5{background:linear-gradient(135deg,#fa709a,#fee140);}
+.c6{background:linear-gradient(135deg,#a18cd1,#fbc2eb);}
+.c7{background:linear-gradient(135deg,#fccb90,#d57eeb);}
+.c8{background:linear-gradient(135deg,#a1c4fd,#c2e9fb);}
+.c9{background:linear-gradient(135deg,#fd7043,#ff8a65);}
+.fade{animation:fi .25s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <div class="panel-title">Demo 链路</div>
+  <div class="step on" id="p0" onclick="go('dji')">
+    <div class="step-dot">1</div>
+    <div><div class="step-role">A · 拍摄者</div><div class="step-name">大疆小程序选内容</div></div>
+  </div>
+  <div class="sl"></div>
+  <div class="step" id="p1" onclick="go('qr')">
+    <div class="step-dot">2</div>
+    <div><div class="step-role">A · 拍摄者</div><div class="step-name">展示互传码</div></div>
+  </div>
+  <div class="sl"></div>
+  <div class="step" id="p2" onclick="go('chat')">
+    <div class="step-dot">3</div>
+    <div><div class="step-role">群聊</div><div class="step-name">转发到群</div></div>
+  </div>
+  <div class="sl"></div>
+  <div class="step" id="p3" onclick="go('prev')">
+    <div class="step-dot">4</div>
+    <div><div class="step-role">B/C/D · 被拍者</div><div class="step-name">扫码选取照片</div></div>
+  </div>
+  <div class="sl"></div>
+  <div class="step" id="p4" onclick="go('success')">
+    <div class="step-dot">5</div>
+    <div><div class="step-role">B/C/D · 被拍者</div><div class="step-name">下载到相册</div></div>
+  </div>
+</div>
+
+<div class="phone">
+  <div class="notch"></div>
+  <div class="pi">
+
+    <!-- S1: DJI Mimo 小程序 -->
+    <div class="screen active" id="s-dji">
+      <div class="sb" style="background:#0a0a0a;">
+        <span style="font-size:15px;font-weight:600;color:#fff;">9:41</span>
+        <div class="mp-cap">
+          <span class="mp-cap-dots">···</span>
+          <div class="mp-cap-div"></div>
+          <div class="mp-cap-ring"><div class="mp-cap-dot"></div></div>
+        </div>
+      </div>
+      <div class="mp-bar">
+        <div class="mp-back-wx">
+          <svg viewBox="0 0 10 17" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2"><path d="M9 1L1 8.5 9 16"/></svg>
+        </div>
+        <div class="mp-center">
+          <div class="mp-ico">DJI</div>
+          <span class="mp-nm">DJI Mimo</span>
+          <span class="mp-tag">小程序</span>
+        </div>
+      </div>
+      <div class="sc" style="background:#0a0a0a;">
+        <div style="padding:16px 16px 10px;background:linear-gradient(180deg,#141414,#0a0a0a);">
+          <div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+            <span style="font-size:32px;">🚁</span>
+            <div>
+              <div style="font-size:14px;font-weight:600;color:#fff;">DJI Mini 4 Pro</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px;">86张照片 · 12段视频</div>
+              <div style="font-size:11px;color:#07C160;margin-top:2px;">● 已连接</div>
+            </div>
+          </div>
+          <div style="height:6px;"></div>
+        </div>
+        <div style="padding:8px 16px 6px;display:flex;justify-content:space-between;">
+          <span style="font-size:13px;color:rgba(255,255,255,.3);">今日拍摄 · 点击多选</span>
+          <span style="font-size:13px;color:rgba(255,255,255,.4);" id="dji-st">已选 0 张</span>
+        </div>
+        <div class="dji-grid" id="dji-grid"></div>
+        <div style="height:80px;"></div>
+      </div>
+      <button class="fab-ic" onclick="go('qr')"><span>📡</span>生成互传码</button>
+      <div class="dji-bar">
+        <div class="dji-bi">已选 <strong id="dji-n">0</strong> 张，无需下载原图</div>
+        <div class="dji-icon-btn" title="下载原图">⬇️</div>
+      </div>
+    </div>
+
+    <!-- S2: Config (落地页卡片) -->
+    <div class="screen" id="s-config">
+      <div class="sb"><span style="font-size:15px;font-weight:600;">9:42</span></div>
+      <div class="nav">
+        <div class="nb" onclick="go('qr')"><svg viewBox="0 0 10 17" fill="none" stroke="#576B95" stroke-width="2"><path d="M9 1L1 8.5 9 16"/></svg></div>
+        <span class="nav-t">生成落地页卡片</span>
+        <span class="na" onclick="doSync()">转发</span>
+      </div>
+      <div class="sc">
+        <div class="cfg-sec" style="margin-top:12px;">
+          <div class="cfg-lbl">落地页标题</div>
+          <div class="cfg-row"><input class="cfg-inp" id="ctitle" placeholder="给这批照片取个名字…" value="黄山三日游 📸"></div>
+        </div>
+        <button class="btn-p" onclick="doSync()">生成卡片并转发到群</button>
+        <div style="height:24px;"></div>
+      </div>
+    </div>
+
+    <!-- S3: Chat (群聊，A视角) -->
+    <div class="screen" id="s-chat">
+      <div class="sb"><span style="font-size:15px;font-weight:600;">9:42</span></div>
+      <div class="nav">
+        <div class="nb" onclick="go('qr')"><svg viewBox="0 0 10 17" fill="none" stroke="#576B95" stroke-width="2"><path d="M9 1L1 8.5 9 16"/></svg></div>
+        <span class="nav-t">黄山三日游 🎒</span>
+        <span style="position:absolute;right:16px;font-size:22px;color:var(--gr);">⋯</span>
+      </div>
+      <div class="sc">
+        <div class="msgs">
+          <div class="mt">今天 09:30</div>
+          <div class="mr"><div class="mav" style="background:#F5A623;">李</div><div><div class="mn">小李</div><div class="mb">今天拍了好多！</div></div></div>
+          <div class="mr"><div class="mav" style="background:#3498DB;">张</div><div><div class="mn">小张</div><div class="mb">快发给我们！</div></div></div>
+          <div class="mt">今天 09:42</div>
+          <div class="mr me">
+            <div class="mav" style="background:#07C160;">我</div>
+            <div>
+              <div class="hb fade" id="hb-card" onclick="openFromCard()">
+                <div class="hb-top">
+                  <div class="hb-icon">📷</div>
+                  <div class="hb-title" id="hb-title">黄山三日游 📸</div>
+                  <div class="hb-sub" id="hb-sub">86张照片 · 群成员可领取</div>
+                  <div class="hb-photos">
+                    <div class="hb-ph c1">🏔️</div>
+                    <div class="hb-ph c3">☁️</div>
+                    <div class="hb-ph c4">🌅</div>
+                    <div class="hb-ph c2">🌲</div>
+                  </div>
+                </div>
+                <div class="hb-bot">
+                  <div class="hb-from"><div class="hb-logo">互</div>互传码 · 无需下载App</div>
+                  <div class="hb-cta">领取 ›</div>
+                </div>
+              </div>
+              <div class="qr-share fade" id="qr-share" onclick="openLinkSheet()" style="display:none;">
+                <div class="qr-share-top">
+                  <span>互传码</span>
+                </div>
+                <div class="qr-share-title" id="qr-share-title">黄山三日游</div>
+              <div class="qr-share-qr" onclick="openLinkSheet('chat')">
+                <img src="./6e502799dad20886641043386439ac0e.jpg" alt="互传码">
+              </div>
+                <div class="qr-share-sub">长按二维码，获取照片、视频和文件</div>
+              </div>
+            </div>
+          </div>
+          <div class="mr"><div class="mav" style="background:#E74C3C;">王</div><div><div class="mn">小王</div><div class="mb">👍 马上选！</div></div></div>
+          <div class="mr"><div class="mav" style="background:#3498DB;">张</div><div><div class="mn">小张</div><div class="mb">不用再挨个等你发了哈哈</div></div></div>
+        </div>
+      </div>
+      <div class="cib">
+        <span style="font-size:22px;color:var(--gr);">🎤</span>
+        <div class="ci-inp">说点什么…</div>
+        <span style="font-size:22px;color:var(--gr);">😊</span>
+        <span style="font-size:22px;color:var(--gr);">＋</span>
+      </div>
+    </div>
+
+    <!-- S4: QR 扫码页 -->
+    <div class="screen" id="s-qr">
+      <div class="sb"><span style="font-size:15px;font-weight:600;">9:43</span></div>
+      <div class="nav">
+        <div class="nb" onclick="go('dji')"><svg viewBox="0 0 10 17" fill="none" stroke="#576B95" stroke-width="2"><path d="M9 1L1 8.5 9 16"/></svg></div>
+        <span class="nav-t">互传码</span>
+      </div>
+      <div class="qr-body">
+        <div class="qr-card">
+          <div class="qr-head">
+            <div class="qr-head-ico">互</div>
+            <div>面对面收照片和文件</div>
+          </div>
+          <div class="qr-frame" onclick="openLinkSheet('contacts')">
+            <img src="./6e502799dad20886641043386439ac0e.jpg" alt="互传码">
+            <div class="scan-line"></div>
+            <div class="qr-br"></div>
+            <div class="qr-br2"></div>
+          </div>
+          <div class="qr-subline">长按二维码，获取照片、视频和文件</div>
+        </div>
+        <div class="share-text" onclick="openShareContacts()">分享到群聊</div>
+      </div>
+    </div>
+
+    <!-- S5: Preview -->
+    <div class="screen" id="s-prev">
+      <div class="sb" style="background:#000;"><span style="font-size:15px;font-weight:600;color:#fff;">9:43</span></div>
+      <div class="prev-nav">
+        <div class="prev-back" onclick="go('qr')"><svg viewBox="0 0 10 17" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2"><path d="M9 1L1 8.5 9 16"/></svg></div>
+        <span class="prev-nav-t" id="prev-title">黄山三日游 📸</span>
+        <span style="position:absolute;right:14px;color:rgba(255,255,255,.65);font-size:14px;cursor:pointer;" onclick="selAll()">全选</span>
+      </div>
+      <div style="background:#111;padding:10px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0;border-bottom:.5px solid rgba(255,255,255,.06);">
+        <div class="pill on" style="font-size:13px;padding:5px 14px;" onclick="filt(this)">全部</div>
+        <div class="pill" style="background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);border-color:rgba(255,255,255,.08);font-size:13px;padding:5px 14px;" onclick="filt(this)">含我 ✨</div>
+        <div class="pill" style="background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);border-color:rgba(255,255,255,.08);font-size:13px;padding:5px 14px;" onclick="filt(this)">风景</div>
+      </div>
+      <div class="sc" style="background:#0a0a0a;">
+        <div class="pg-grid" id="pg-grid"></div>
+        <div style="height:80px;"></div>
+      </div>
+      <div class="prev-bar">
+        <div class="prev-info">已选 <strong id="pn">0</strong> 张</div>
+        <button class="btn-dl" id="dl-btn" disabled onclick="go('success')">下载到相册</button>
+      </div>
+    </div>
+
+    <!-- S6: Success -->
+    <div class="screen" id="s-success">
+      <div class="sb"><span style="font-size:15px;font-weight:600;">9:44</span></div>
+      <div class="nav"><span class="nav-t">下载完成</span></div>
+      <div class="suc-body">
+        <div class="suc-ring">✓</div>
+        <div class="suc-ti">已保存到相册</div>
+        <button class="btn-p" style="width:200px;display:inline-block;" onclick="afterSuccess()">确定</button>
+      </div>
+    </div>
+
+    <!-- Link Sheet (global) -->
+    <div class="sheet-overlay" id="link-ov" onclick="closeLinkSheet()"></div>
+    <div class="sheet-wrap" id="link-wrap">
+      <div class="link-sheet">
+        <div class="sheet-handle"></div>
+        <div class="link-row" onclick="closeLinkSheet();openFromCard()" style="cursor:pointer;">
+          <div class="link-ico">码</div>
+          <div>识别互传码</div>
+          <span style="margin-left:auto;color:#C8C8CD;font-size:18px;">›</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share Input Sheet (global) -->
+    <div class="sheet-overlay" id="input-ov" onclick="closeShareInput()"></div>
+    <div class="sheet-wrap" id="input-wrap">
+      <div class="input-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">互传码说明</div>
+        <div class="input-row">
+          <input id="share-title" maxlength="5" placeholder="互传码双发可见，最多5个字" oninput="onShareTitleInput()">
+        </div>
+        <div class="input-actions">
+          <button class="btn-ghost" onclick="closeShareInput()">取消</button>
+          <button class="btn-done" id="share-done" onclick="confirmShareTitle()" disabled>完成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contacts (微信联系人列表示意) -->
+    <div class="screen" id="s-contacts">
+      <div class="sb"><span style="font-size:15px;font-weight:600;">9:44</span></div>
+      <div class="nav"><span class="nav-t">联系人</span></div>
+      <div class="sc" style="background:#F2F2F7;padding:12px 0;">
+        <div style="background:#fff;border-top:.5px solid var(--bd);border-bottom:.5px solid var(--bd);">
+          <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:.5px solid var(--bd);">
+            <div style="width:36px;height:36px;border-radius:8px;background:#07C160;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;">群</div>
+            <div style="font-size:16px;color:var(--tx);">群聊</div>
+          </div>
+          <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:.5px solid var(--bd);">
+            <div style="width:36px;height:36px;border-radius:8px;background:#4A90E2;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;">A</div>
+            <div style="font-size:16px;color:var(--tx);">A同学</div>
+          </div>
+          <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:.5px solid var(--bd);">
+            <div style="width:36px;height:36px;border-radius:8px;background:#F5A623;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;">B</div>
+            <div style="font-size:16px;color:var(--tx);">B同学</div>
+          </div>
+          <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;">
+            <div style="width:36px;height:36px;border-radius:8px;background:#9B59B6;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;">C</div>
+            <div style="font-size:16px;color:var(--tx);">C同学</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share Contacts (分享到群聊选择) -->
+    <div class="screen" id="s-share-contacts">
+      <div class="sb"><span style="font-size:15px;font-weight:600;">9:43</span></div>
+      <div class="nav">
+        <div class="nb" onclick="go('qr')"><svg viewBox="0 0 10 17" fill="none" stroke="#576B95" stroke-width="2"><path d="M9 1L1 8.5 9 16"/></svg></div>
+        <span class="nav-t">选择群聊</span>
+      </div>
+      <div class="sc" style="background:#F2F2F7;padding:12px 0;">
+        <div style="background:#fff;border-top:.5px solid var(--bd);border-bottom:.5px solid var(--bd);">
+          <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:.5px solid var(--bd);cursor:pointer;" onclick="selectShareGroup()">
+            <div style="width:36px;height:36px;border-radius:8px;background:#07C160;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;">群</div>
+            <div style="font-size:16px;color:var(--tx);">黄山三日游</div>
+          </div>
+          <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:.5px solid var(--bd);">
+            <div style="width:36px;height:36px;border-radius:8px;background:#4A90E2;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;">群</div>
+            <div style="font-size:16px;color:var(--tx);">飞友交流群</div>
+          </div>
+          <div style="padding:12px 16px;display:flex;align-items:center;gap:12px;">
+            <div style="width:36px;height:36px;border-radius:8px;background:#F5A623;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;">群</div>
+            <div style="font-size:16px;color:var(--tx);">周末出行</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const ORDER=['dji','qr','chat','prev','success','contacts','sharecontacts'];
+const SID={dji:'s-dji',config:'s-config',chat:'s-chat',qr:'s-qr',prev:'s-prev',success:'s-success',contacts:'s-contacts',sharecontacts:'s-share-contacts'};
+const PIDX={dji:0,qr:1,chat:2,prev:3,success:4,contacts:4,sharecontacts:1};
+let cur='dji';
+let shareIndices=null;
+let currentIndices=null;
+let successBack='chat';
+function go(name){
+  if(name===cur)return;
+  const fEl=document.getElementById(SID[cur]),tEl=document.getElementById(SID[name]);
+  if(!fEl||!tEl)return;
+  fEl.classList.remove('active');
+  tEl.classList.add('active');
+  cur=name; updatePanel();
+  if(name==='success'){const n=pSel.size;document.getElementById('dl-n').textContent=n;}
+}
+function updatePanel(){
+  const idx=PIDX[cur]??0;
+  for(let i=0;i<=5;i++){const el=document.getElementById('p'+i);el.classList.remove('on','done');if(i===idx)el.classList.add('on');else if(i<idx)el.classList.add('done');}
+}
+
+function openShareContacts(){
+  go('sharecontacts');
+}
+function selectShareGroup(){
+  openShareInput();
+}
+// DJI Grid
+const PHOTOS=[{e:'🏔️',c:'c1'},{e:'☁️',c:'c3'},{e:'🌅',c:'c4'},{e:'🌲',c:'c2'},{e:'🪨',c:'c6'},{e:'🌊',c:'c7'},{e:'🗻',c:'c5'},{e:'🌄',c:'c8'},{e:'🏞️',c:'c9'},{e:'⛰️',c:'c1'},{e:'🌸',c:'c2'},{e:'🎋',c:'c3'}];
+let dSel=new Set();
+function buildDJI(){
+  const g=document.getElementById('dji-grid');
+  PHOTOS.forEach((p,i)=>{
+    const d=document.createElement('div');d.className='dj-th '+p.c;
+    d.innerHTML=`<span style="font-size:28px;">${p.e}</span><div class="sr"></div><div class="sd"></div>`;
+    d.onclick=()=>{dSel.has(i)?(dSel.delete(i),d.classList.remove('sel'),d.querySelector('.sd').textContent=''):(dSel.add(i),d.classList.add('sel'),d.querySelector('.sd').textContent='✓');document.getElementById('dji-n').textContent=dSel.size;document.getElementById('dji-st').textContent=`已选 ${dSel.size} 张`;buildStrip();};
+    g.appendChild(d);
+  });
+}
+function buildStrip(){
+  const s=document.getElementById('pstrip');
+  if(!s)return;
+  s.innerHTML='';
+  [...dSel].slice(0,7).forEach(i=>{const d=document.createElement('div');d.className='pst '+PHOTOS[i].c;d.textContent=PHOTOS[i].e;s.appendChild(d);});
+  if(dSel.size>7){const m=document.createElement('div');m.className='psm';m.textContent='+'+(dSel.size-7);s.appendChild(m);}
+}
+// Config
+let scopeOpen=false;
+const CONTACTS=[{n:'小张',c:'#3498DB',ch:'张'},{n:'小王',c:'#E74C3C',ch:'王'},{n:'小陈',c:'#9B59B6',ch:'陈'},{n:'小刘',c:'#F39C12',ch:'刘'}];
+let cSel=new Set();
+function toggleScope(e){
+  scopeOpen=!scopeOpen;
+  const chips=document.getElementById('chips'),note=document.getElementById('scope-note');
+  chips.style.display=scopeOpen?'flex':'none';note.style.display=scopeOpen?'none':'flex';
+  if(scopeOpen&&chips.children.length===0){
+    CONTACTS.forEach((c,i)=>{const el=document.createElement('div');el.className='chip';el.innerHTML=`<div class="chip-av" style="background:${c.c};">${c.ch}</div>${c.n}`;el.onclick=ev=>{ev.stopPropagation();cSel.has(i)?(cSel.delete(i),el.classList.remove('on')):(cSel.add(i),el.classList.add('on'));document.getElementById('scope-v').textContent=cSel.size>0?`已圈选 ${cSel.size} 人`:'群内所有人';};chips.appendChild(el);});
+  }
+}
+function setPill(el){document.querySelectorAll('#pills .pill').forEach(p=>p.classList.remove('on'));el.classList.add('on');}
+function getPill(){return document.querySelector('#pills .pill.on')?.textContent||'24小时';}
+function doSync(){
+  const title=document.getElementById('ctitle').value||'黄山三日游 📸';
+  const n=dSel.size||86;
+  document.getElementById('hb-title').textContent=title;
+  document.getElementById('hb-sub').textContent=`${n}张照片 · 群成员可领取`;
+  document.getElementById('prev-title').textContent=title;
+  shareIndices=getShareIndices();
+  const hb=document.getElementById('hb-card'),qs=document.getElementById('qr-share');
+  if(hb)hb.style.display='block';
+  if(qs)qs.style.display='none';
+  go('chat');
+}
+// Preview
+let pSel=new Set();
+function buildPG(indices){
+  const g=document.getElementById('pg-grid');
+  g.innerHTML='';
+  pSel=new Set();
+  const list=Array.isArray(indices)&&indices.length?indices:PHOTOS.map((_,i)=>i);
+  list.forEach((idx)=>{
+    const p=PHOTOS[idx];
+    const d=document.createElement('div');d.className='pg-it '+p.c;d.dataset.idx=idx;
+    d.innerHTML=`<span style="font-size:30px;">${p.e}</span><div class="ov"></div><div class="pg-ck"></div>`;
+    d.onclick=()=>{pSel.has(idx)?(pSel.delete(idx),d.classList.remove('sel'),d.querySelector('.pg-ck').textContent=''):(pSel.add(idx),d.classList.add('sel'),d.querySelector('.pg-ck').textContent='✓');const n=pSel.size;document.getElementById('pn').textContent=n;const btn=document.getElementById('dl-btn');btn.disabled=n===0;btn.textContent=n>0?`下载 (${n})`:'下载到相册';};
+    g.appendChild(d);
+  });
+  document.getElementById('pn').textContent=0;
+  const btn=document.getElementById('dl-btn');btn.disabled=true;btn.textContent='下载到相册';
+}
+function selAll(){pSel=new Set();document.querySelectorAll('.pg-it').forEach((d)=>{const idx=Number(d.dataset.idx);if(!Number.isNaN(idx))pSel.add(idx);d.classList.add('sel');d.querySelector('.pg-ck').textContent='✓';});const n=pSel.size;document.getElementById('pn').textContent=n;const btn=document.getElementById('dl-btn');btn.disabled=false;btn.textContent=`下载 (${n})`;}
+function filt(el){document.querySelectorAll('#s-prev .pill').forEach(p=>{p.classList.remove('on');p.style.cssText='background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);border-color:rgba(255,255,255,.08);font-size:13px;padding:5px 14px;';});el.classList.add('on');el.style.cssText='background:var(--g);color:#fff;border-color:var(--g);font-size:13px;padding:5px 14px;';}
+function getShareIndices(){return dSel.size>0?[...dSel]:PHOTOS.map((_,i)=>i);}
+function openFromCard(){shareIndices=shareIndices||getShareIndices();currentIndices=shareIndices;buildPG(currentIndices);successBack='chat';go('prev');}
+function openLinkSheet(back){if(back)successBack=back;document.getElementById('link-ov')?.classList.add('show');document.getElementById('link-wrap')?.classList.add('show');}
+function closeLinkSheet(){document.getElementById('link-ov')?.classList.remove('show');document.getElementById('link-wrap')?.classList.remove('show');}
+function openShareInput(){document.getElementById('input-ov')?.classList.add('show');document.getElementById('input-wrap')?.classList.add('show');const inp=document.getElementById('share-title');if(inp){inp.value='';document.getElementById('share-done').disabled=true;}}
+function closeShareInput(){document.getElementById('input-ov')?.classList.remove('show');document.getElementById('input-wrap')?.classList.remove('show');}
+function onShareTitleInput(){const v=document.getElementById('share-title').value.trim();document.getElementById('share-done').disabled=!v;}
+function confirmShareTitle(){const v=document.getElementById('share-title').value.trim()||'黄山三日游';document.getElementById('qr-share-title').textContent=v;document.getElementById('prev-title').textContent=v;shareIndices=getShareIndices();const hb=document.getElementById('hb-card'),qs=document.getElementById('qr-share');if(hb)hb.style.display='none';if(qs)qs.style.display='block';closeShareInput();go('chat');}
+function afterSuccess(){go(successBack);}
+buildDJI();buildPG();updatePanel();
+</script>
+</body>
+</html>
